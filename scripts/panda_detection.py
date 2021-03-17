@@ -22,7 +22,7 @@ from vgn.utils.transform import Rotation, Transform
 
 
 class GraspDetectionServer(object):
-    def __init__(self, model_path):
+    def __init__(self, model_path, sim_cam):
         # define frames
         self.task_frame_id = "task"
         self.cam_frame_id = "ptu_camera_depth_optical_frame"
@@ -37,7 +37,11 @@ class GraspDetectionServer(object):
         # )
 
         # define camera parameters
-        self.cam_topic_name = "/ptu_camera/camera/aligned_depth_to_color/image_raw"
+        if sim_cam:
+            self.cam_topic_name = "/ptu_camera/camera/depth_registered"
+        else:
+            self.cam_topic_name = "/ptu_camera/camera/aligned_depth_to_color/image_raw"
+
         cam_info = rospy.wait_for_message('ptu_camera/camera/color/camera_info', sensor_msgs.msg.CameraInfo, timeout=rospy.Duration(1))
         self.intrinsic = CameraIntrinsic(cam_info.width, cam_info.height, cam_info.K[0], cam_info.K[4], cam_info.K[2], cam_info.K[5])
 
@@ -60,8 +64,7 @@ class GraspDetectionServer(object):
         rospy.Timer(rospy.Duration(0.1), self.detect_grasps)
 
     def sensor_cb(self, msg):
-        # self.img = self.cv_bridge.imgmsg_to_cv2(msg).astype(np.float32) * 0.001
-        depth_image = np.frombuffer(msg.data, dtype=np.uint16).reshape(msg.height, msg.width)
+        depth_image = np.frombuffer(msg.data, dtype=np.uint16).reshape(msg.height, msg.width, -1)
         self.img = depth_image.astype(np.float32) * 0.001
 
     def detect_grasps(self, _):
@@ -108,10 +111,12 @@ class GraspDetectionServer(object):
 
 
 if __name__ == "__main__":
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=Path, required=True)
-    args = parser.parse_args()
+    parser.add_argument("--sim_cam", type=bool, default=False, required=False)
+    args, unknown = parser.parse_known_args()
 
     rospy.init_node("panda_detection")
-    GraspDetectionServer(args.model)
+    GraspDetectionServer(args.model, args.sim_cam)
     rospy.spin()
