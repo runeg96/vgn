@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 Real-time grasp detection.
@@ -8,7 +8,7 @@ import argparse
 from pathlib import Path
 import time
 
-import cv_bridge
+# import cv_bridge
 import numpy as np
 import rospy
 import sensor_msgs.msg
@@ -25,23 +25,24 @@ class GraspDetectionServer(object):
     def __init__(self, model_path):
         # define frames
         self.task_frame_id = "task"
-        self.cam_frame_id = "camera_depth_optical_frame"
+        self.cam_frame_id = "ptu_camera_depth_optical_frame"
         self.T_cam_task = Transform(
             Rotation.from_quat([-0.679, 0.726, -0.074, -0.081]), [0.166, 0.101, 0.515]
         )
 
-        # broadcast the tf tree (for visualization)
-        self.tf_tree = ros_utils.TransformTree()
-        self.tf_tree.broadcast_static(
-            self.T_cam_task, self.cam_frame_id, self.task_frame_id
-        )
+        # # broadcast the tf tree (for visualization)
+        # self.tf_tree = ros_utils.TransformTree()
+        # self.tf_tree.broadcast_static(
+        #     self.T_cam_task, self.cam_frame_id, self.task_frame_id
+        # )
 
         # define camera parameters
-        self.cam_topic_name = "/camera/depth/image_rect_raw"
-        self.intrinsic = CameraIntrinsic(640, 480, 383.265, 383.26, 319.39, 242.43)
+        self.cam_topic_name = "/ptu_camera/camera/aligned_depth_to_color/image_raw"
+        cam_info = rospy.wait_for_message('ptu_camera/camera/color/camera_info', sensor_msgs.msg.CameraInfo, timeout=rospy.Duration(1))
+        self.intrinsic = CameraIntrinsic(cam_info.width, cam_info.height, cam_info.K[0], cam_info.K[4], cam_info.K[2], cam_info.K[5])
 
         # setup a CV bridge
-        self.cv_bridge = cv_bridge.CvBridge()
+        # self.cv_bridge = cv_bridge.CvBridge()
 
         # construct the grasp planner object
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -59,7 +60,9 @@ class GraspDetectionServer(object):
         rospy.Timer(rospy.Duration(0.1), self.detect_grasps)
 
     def sensor_cb(self, msg):
-        self.img = self.cv_bridge.imgmsg_to_cv2(msg).astype(np.float32) * 0.001
+        # self.img = self.cv_bridge.imgmsg_to_cv2(msg).astype(np.float32) * 0.001
+        depth_image = np.frombuffer(msg.data, dtype=np.uint16).reshape(msg.height, msg.width)
+        self.img = depth_image.astype(np.float32) * 0.001
 
     def detect_grasps(self, _):
         if self.img is None:
