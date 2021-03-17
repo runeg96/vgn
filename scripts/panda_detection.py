@@ -30,12 +30,6 @@ class GraspDetectionServer(object):
             Rotation.from_quat([-0.679, 0.726, -0.074, -0.081]), [0.166, 0.101, 0.515]
         )
 
-        # # broadcast the tf tree (for visualization)
-        # self.tf_tree = ros_utils.TransformTree()
-        # self.tf_tree.broadcast_static(
-        #     self.T_cam_task, self.cam_frame_id, self.task_frame_id
-        # )
-
         # define camera parameters
         if sim_cam:
             self.cam_topic_name = "/ptu_camera/camera/depth_registered"
@@ -44,9 +38,6 @@ class GraspDetectionServer(object):
 
         cam_info = rospy.wait_for_message('ptu_camera/camera/color/camera_info', sensor_msgs.msg.CameraInfo, timeout=rospy.Duration(1))
         self.intrinsic = CameraIntrinsic(cam_info.width, cam_info.height, cam_info.K[0], cam_info.K[4], cam_info.K[2], cam_info.K[5])
-
-        # setup a CV bridge
-        # self.cv_bridge = cv_bridge.CvBridge()
 
         # construct the grasp planner object
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
