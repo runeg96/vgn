@@ -3,7 +3,7 @@ import numpy as np
 import rospy
 from sensor_msgs.msg import PointCloud2, PointField
 import std_msgs.msg
-import tf2_ros
+# import tf2_ros
 
 from vgn.utils.transform import Rotation, Transform
 
@@ -122,29 +122,29 @@ def to_cloud_msg(points, intensities=None, frame=None, stamp=None):
     return msg
 
 
-class TransformTree(object):
-    def __init__(self):
-        self._buffer = tf2_ros.Buffer()
-        self._listener = tf2_ros.TransformListener(self._buffer)
-        self._broadcaster = tf2_ros.TransformBroadcaster()
-        self._static_broadcaster = tf2_ros.StaticTransformBroadcaster()
-
-    def lookup(self, target_frame, source_frame, time, timeout=rospy.Duration(0)):
-        msg = self._buffer.lookup_transform(target_frame, source_frame, time, timeout)
-        return from_transform_msg(msg.transform)
-
-    def broadcast(self, transform, target_frame, source_frame):
-        msg = geometry_msgs.msg.TransformStamped()
-        msg.header.stamp = rospy.Time.now()
-        msg.header.frame_id = target_frame
-        msg.child_frame_id = source_frame
-        msg.transform = to_transform_msg(transform)
-        self._broadcaster.sendTransform(msg)
-
-    def broadcast_static(self, transform, target_frame, source_frame):
-        msg = geometry_msgs.msg.TransformStamped()
-        msg.header.stamp = rospy.Time.now()
-        msg.header.frame_id = target_frame
-        msg.child_frame_id = source_frame
-        msg.transform = to_transform_msg(transform)
-        self._static_broadcaster.sendTransform(msg)
+# class TransformTree(object):
+#     def __init__(self):
+#         self._buffer = tf2_ros.Buffer()
+#         self._listener = tf2_ros.TransformListener(self._buffer)
+#         self._broadcaster = tf2_ros.TransformBroadcaster()
+#         self._static_broadcaster = tf2_ros.StaticTransformBroadcaster()
+#
+#     def lookup(self, target_frame, source_frame, time, timeout=rospy.Duration(0)):
+#         msg = self._buffer.lookup_transform(target_frame, source_frame, time, timeout)
+#         return from_transform_msg(msg.transform)
+#
+#     def broadcast(self, transform, target_frame, source_frame):
+#         msg = geometry_msgs.msg.TransformStamped()
+#         msg.header.stamp = rospy.Time.now()
+#         msg.header.frame_id = target_frame
+#         msg.child_frame_id = source_frame
+#         msg.transform = to_transform_msg(transform)
+#         self._broadcaster.sendTransform(msg)
+#
+#     def broadcast_static(self, transform, target_frame, source_frame):
+#         msg = geometry_msgs.msg.TransformStamped()
+#         msg.header.stamp = rospy.Time.now()
+#         msg.header.frame_id = target_frame
+#         msg.child_frame_id = source_frame
+#         msg.transform = to_transform_msg(transform)
+#         self._static_broadcaster.sendTransform(msg)
