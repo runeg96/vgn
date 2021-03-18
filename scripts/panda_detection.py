@@ -22,7 +22,7 @@ from vgn.utils.transform import Rotation, Transform
 
 
 class GraspDetectionServer(object):
-    def __init__(self, model_path, sim_cam):
+    def __init__(self, model_path):
         # define frames
         self.task_frame_id = "task"
         self.cam_frame_id = "ptu_camera_depth_optical_frame"
@@ -31,10 +31,7 @@ class GraspDetectionServer(object):
         )
 
         # define camera parameters
-        if sim_cam:
-            self.cam_topic_name = "/ptu_camera/camera/depth_registered"
-        else:
-            self.cam_topic_name = "/ptu_camera/camera/aligned_depth_to_color/image_raw"
+        self.cam_topic_name = "/ptu_camera/camera/aligned_depth_to_color/image_raw"
 
         cam_info = rospy.wait_for_message('ptu_camera/camera/color/camera_info', sensor_msgs.msg.CameraInfo, timeout=rospy.Duration(1))
         self.intrinsic = CameraIntrinsic(cam_info.width, cam_info.height, cam_info.K[0], cam_info.K[4], cam_info.K[2], cam_info.K[5])
@@ -105,9 +102,8 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=Path, required=True)
-    parser.add_argument("--sim_cam", type=bool, default=False, required=False)
     args, unknown = parser.parse_known_args()
 
     rospy.init_node("panda_detection")
-    GraspDetectionServer(args.model, args.sim_cam)
+    GraspDetectionServer(args.model)
     rospy.spin()
