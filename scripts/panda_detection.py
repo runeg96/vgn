@@ -14,6 +14,7 @@ import rospy
 import sensor_msgs.msg
 import torch
 
+from grasp_lib.msg import Grasp as Gr
 from vgn import vis
 from vgn.detection import *
 from vgn.perception import *
@@ -26,9 +27,9 @@ class GraspDetectionServer(object):
         # define frames
         self.task_frame_id = "task"
         self.cam_frame_id = "ptu_camera_depth_optical_frame"
+        self.grasp_pub = rospy.Publisher("vgn/output", Gr, queue_size=1)
         self.T_cam_task = Transform(
-            Rotation.from_quat([-0.679, 0.726, -0.074, -0.081]), [0.166, 0.101, 0.515]
-        )
+            Rotation.from_quat([0.960, 0.000, -0.000, 0.282]), [-0.131, 0.292, 0.825])
 
         # define camera parameters
         self.cam_topic_name = "/ptu_camera/camera/aligned_depth_to_color/image_raw"
@@ -55,12 +56,35 @@ class GraspDetectionServer(object):
         depth_image = np.frombuffer(msg.data, dtype=np.uint16).reshape(msg.height, msg.width, -1)
         self.img = depth_image.astype(np.float32) * 0.001
 
+    def grasp_paser(self, grasps, scores):
+        vis_grasp = Gr()
+
+        if grasps:
+            index = np.argmax(scores)
+            # print("translation: ",grasps[index].pose.translation)
+            # print("rotation: ",grasps[index].pose.rotation.as_quat())
+            # print("width: ",grasps[index].width)
+            # print("Scores: ",scores[index])
+
+            vis_grasp.name = "vgn"
+            vis_grasp.pose.position.x = grasps[index].pose.translation[0]
+            vis_grasp.pose.position.y = grasps[index].pose.translation[1]
+            vis_grasp.pose.position.z = grasps[index].pose.translation[2]
+            rotation = grasps[index].pose.rotation.as_quat()
+            vis_grasp.pose.orientation.x = rotation[0]
+            vis_grasp.pose.orientation.y = rotation[1]
+            vis_grasp.pose.orientation.z = rotation[2]
+            vis_grasp.pose.orientation.w = rotation[3]
+            vis_grasp.width_meter = grasps[index].width
+            vis_grasp.quality = scores[index]
+            self.grasp_pub.publish(vis_grasp)
+
     def detect_grasps(self, _):
         if self.img is None:
             return
 
         tic = time.time()
-        self.tsdf = TSDFVolume(0.3, 40)
+        self.tsdf = TSDFVolume(1.0, 40)
         self.tsdf.integrate(self.img, self.intrinsic, self.T_cam_task)
         print("Construct tsdf ", time.time() - tic)
 
@@ -91,6 +115,7 @@ class GraspDetectionServer(object):
         vis.clear_grasps()
         rospy.sleep(0.01)
         tic = time.time()
+        self.grasp_paser(grasps,scores)
         vis.draw_grasps(grasps, scores, 0.05)
         print("Visualize      ", time.time() - tic)
 
