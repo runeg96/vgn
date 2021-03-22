@@ -84,7 +84,7 @@ class GraspDetectionServer(object):
             return
 
         tic = time.time()
-        self.tsdf = TSDFVolume(1.0, 40)
+        self.tsdf = TSDFVolume(0.3, 40)
         self.tsdf.integrate(self.img, self.intrinsic, self.T_cam_task)
         print("Construct tsdf ", time.time() - tic)
 
